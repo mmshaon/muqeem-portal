@@ -1,4 +1,3 @@
--- Table for storing report metadata (optional – you may extend)
 CREATE TABLE IF NOT EXISTS reports (
     id SERIAL PRIMARY KEY,
     ref_number VARCHAR(50) UNIQUE NOT NULL,
@@ -11,8 +10,6 @@ CREATE TABLE IF NOT EXISTS reports (
     uploaded_at TIMESTAMPTZ DEFAULT NOW(),
     cloudinary_url TEXT
 );
-
--- Table for user sessions (if needed for PWA login later)
 CREATE TABLE IF NOT EXISTS sessions (
     id SERIAL PRIMARY KEY,
     session_token TEXT UNIQUE NOT NULL,

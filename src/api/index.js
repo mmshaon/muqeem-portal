@@ -10,7 +10,6 @@ app.use(express.static('public'));
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// Example: Save report metadata
 app.post('/api/reports', async (req, res) => {
     const { ref_number, passport_number, resident_id, full_name, cloudinary_url } = req.body;
     try {
