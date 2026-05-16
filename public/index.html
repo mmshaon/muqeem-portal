@@ -28,35 +28,281 @@
         .secure-pdf { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
         .ocr-progress { width: 100%; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; margin: 5px 0; }
         .ocr-progress-bar { height: 100%; width: 0%; background: #10b981; transition: width 0.3s; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .logo-upload { cursor: pointer; }
+        .logo-upload:hover .logo-hover { opacity: 1; }
     </style>
 </head>
 <body class="secure-pdf">
-    <!-- Controls (same as previous) -->
-    <div class="fixed top-4 right-4 no-print z-50 flex flex-col gap-2">
-        <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded shadow-lg">Download PDF</button>
-        <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow-lg">Print Format</button>
-        <div class="bg-gray-800 text-white text-xs p-2 rounded opacity-80 max-w-[220px] text-center">
-            Click any text to edit.<br>Click photo/logo to upload.<br><span class="text-yellow-300">⬇ Upload docs for auto‑fill via OCR</span>
+
+<!-- Controls (no-print) -->
+<div class="fixed top-4 right-4 no-print z-50 flex flex-col gap-2">
+    <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded shadow-lg transition-all">Download PDF</button>
+    <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded shadow-lg transition-all">Print Format</button>
+    <div class="bg-gray-800 text-white text-xs p-2 rounded shadow opacity-80 max-w-[220px] text-center">
+        Click any text to edit.<br>Click photo/logo to upload.<br><span class="text-yellow-300">⬇ Upload docs for auto‑fill via OCR</span>
+    </div>
+    <label class="cursor-pointer bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded shadow-lg transition-all text-center">
+        Upload Documents (OCR)
+        <input type="file" accept="image/*" multiple class="hidden" id="ocrFiles">
+    </label>
+    <button onclick="generateAndUpload()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded shadow-lg transition-all">Generate & Upload to Cloudinary</button>
+    <div id="ocrStatus" class="text-xs text-white bg-gray-700 p-1 rounded hidden"></div>
+    <div id="uploadStatus" class="text-xs text-white bg-gray-700 p-1 rounded hidden"></div>
+    <div id="ocrProgress" class="ocr-progress hidden"><div id="ocrProgressBar" class="ocr-progress-bar"></div></div>
+</div>
+
+<!-- Main Report -->
+<div id="a4-container">
+    <div class="flex justify-between items-start mb-6">
+        <div class="w-1/4">
+            <label class="cursor-pointer block border border-gray-400 bg-white w-[110px] h-[140px] relative overflow-hidden group" id="photoDropZone">
+                <input type="file" accept="image/*" class="hidden no-print" onchange="previewImage(event, 'profile-img')" id="photoInput">
+                <img id="profile-img" src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" alt="Profile" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black bg-opacity-50 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity no-print">Click / Drop photo</div>
+            </label>
         </div>
-        <label class="cursor-pointer bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded text-center">
-            Upload Documents (OCR)<input type="file" accept="image/*" multiple class="hidden" id="ocrFiles">
-        </label>
-        <button onclick="generateAndUpload()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">Generate & Upload to Cloudinary</button>
-        <div id="ocrStatus" class="text-xs text-white bg-gray-700 p-1 rounded hidden"></div>
-        <div id="uploadStatus" class="text-xs text-white bg-gray-700 p-1 rounded hidden"></div>
-        <div id="ocrProgress" class="ocr-progress hidden"><div id="ocrProgressBar" class="ocr-progress-bar"></div></div>
+        <div class="w-2/4 text-center flex flex-col justify-center items-center mt-2">
+            <label class="logo-upload relative inline-block mb-1">
+                <input type="file" accept="image/*" class="hidden no-print" onchange="previewImage(event, 'brand-logo')" id="logoInput">
+                <img id="brand-logo" src="https://via.placeholder.com/120x40?text=Your+Logo" alt="Brand Logo" class="h-10 object-contain">
+                <div class="logo-hover absolute inset-0 bg-black bg-opacity-40 text-white text-xs flex items-center justify-center opacity-0 transition-opacity no-print">Change logo</div>
+            </label>
+            <div class="text-[#8B0000] text-3xl font-bold arabic-text mb-[-4px]">مقيم</div>
+            <div class="text-[#8B0000] text-2xl font-bold tracking-wide mb-2">Muqeem</div>
+            <div class="flex justify-center items-center gap-8 text-lg font-bold">
+                <span>Muqeem Report</span>
+                <span class="arabic-text">تقرير مقيم</span>
+            </div>
+        </div>
+        <div class="w-1/4 flex justify-end items-start gap-3 mt-1">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Emblem_of_Saudi_Arabia.svg/200px-Emblem_of_Saudi_Arabia.svg.png" alt="KSA Logo" class="w-14 h-14 object-contain">
+            <div id="qrCodeContainer" class="w-[70px] h-[70px] border border-gray-300 bg-white"><canvas id="qrCanvas"></canvas></div>
+        </div>
     </div>
 
-    <div id="a4-container">
-        <!-- Header with branding logo, etc. – full as previous answer -->
-        <!-- For brevity, we include the core structure. In actual implementation, copy the entire HTML from previous answer. -->
-        <!-- This placeholder will be replaced by the full source from the user's previous code. -->
-        <p>Full report content here (see previous answer).</p>
+    <div class="flex justify-between items-center text-xs font-bold border-b border-transparent pb-4 mb-4 mt-2 px-1">
+        <div class="flex w-1/2 items-center">
+            <span class="w-[120px]">Reference Number</span>
+            <input type="text" class="flex-1 text-left px-2" value="202101268803618" id="refNumber" oninput="generateQRCode(this.value)">
+            <span class="arabic-text w-[100px] text-left">الرقم المرجعي</span>
+        </div>
+        <div class="flex w-1/2 justify-end items-center gap-4">
+            <span>Issue Date</span>
+            <input type="text" class="w-[100px]" value="2021-01-26" id="issueDate">
+            <span class="arabic-text">تاريخ الاصدار</span>
+        </div>
     </div>
-    <script>
-        // Same JavaScript as previous answer (OCR, QR, Cloudinary upload, security)
-        // For production, this will be the full script.
-    </script>
+
+    <!-- Data Columns (same as before) -->
+    <div class="grid grid-cols-2 gap-4 text-[10.5px]">
+        <!-- LEFT COLUMN -->
+        <div class="flex flex-col gap-3">
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Passport & Visas</span><span class="arabic-text">معلومات الجواز والتأشيرات</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Passport Number</span><input class="w-[24%]" value="A25029812" id="passportNumber"><span class="font-bold w-[38%] arabic-text">رقم الجواز</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Passport Issuance Place</span><input class="w-[24%]" value="جده" id="passportPlace"><span class="font-bold w-[38%] arabic-text">مكان اصدار الجواز</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Passport Issuance Date</span><div class="w-[24%] flex flex-col"><input class="text-[9px]" value="1440-09-20" id="passportIssueHijri"><input class="text-[9px]" value="2019-05-25" id="passportIssueGregorian"></div><span class="font-bold w-[38%] arabic-text">تاريخ اصدار الجواز</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Passport Expiry Date</span><div class="w-[24%] flex flex-col"><input class="text-[9px]" value="1447-12-07" id="passportExpiryHijri"><input class="text-[9px]" value="2026-05-24" id="passportExpiryGregorian"></div><span class="font-bold w-[38%] arabic-text">تاريخ انتهاء الجواز</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Passport Status</span><input class="w-[24%]" value="استبدال" id="passportStatus"><span class="font-bold w-[38%] arabic-text">حالة الجواز</span></div>
+                <div class="flex justify-between mt-2"><span class="font-bold w-[38%]">Visa Expiry Date</span><input class="w-[24%]" value="" id="visaExpiry"><span class="font-bold w-[38%] arabic-text">تاريخ انتهاء التأشيرة</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Visa Issuance Place</span><input class="w-[24%]" value="" id="visaPlace"><span class="font-bold w-[38%] arabic-text">مكان اصدار التأشيرة</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Date of Last Exit</span><input class="w-[24%]" value="" id="lastExit"><span class="font-bold w-[38%] arabic-text">تاريخ آخر خروج</span></div>
+            </div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Health Insurance</span><span class="arabic-text">معلومات التأمين الصحي</span></div>
+            <div class="px-1 mt-1"><div class="flex justify-between"><span class="font-bold w-[38%]">Expiry Date</span><div class="w-[24%] flex flex-col"><input class="text-[9px]" value="1442-09-11" id="insuranceExpiryHijri"><input class="text-[9px]" value="2021-04-23" id="insuranceExpiryGregorian"></div><span class="font-bold w-[38%] arabic-text">تاريخ الانتهاء</span></div></div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Vehicles</span><span class="arabic-text">معلومات المركبات</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">No. of Vehicles</span><input class="w-[24%]" value="2" id="numVehicles"><span class="font-bold w-[38%] arabic-text">المركبات</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Traffic Violations</span><input class="w-[24%]" value="2" id="trafficViolations"><span class="font-bold w-[38%] arabic-text">المخالفات المرورية</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Driving Licenses</span><input class="w-[24%]" value="1" id="drivingLicenses"><span class="font-bold w-[38%] arabic-text">رخص القيادة</span></div>
+            </div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Hajj</span><span class="arabic-text">معلومات الحج</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Hajj Eligibility</span><input class="w-[24%]" value="نعم" id="hajjEligibility"><span class="font-bold w-[38%] arabic-text">أحقية الحج</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Last Year of Hajj</span><input class="w-[24%]" value="1431" id="lastHajjYear"><span class="font-bold w-[38%] arabic-text">آخر سنة حج</span></div>
+            </div></div>
+        </div>
+        <!-- RIGHT COLUMN -->
+        <div class="flex flex-col gap-3">
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Resident</span><span class="arabic-text">معلومات المقيم</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Resident ID</span><input class="w-[24%]" value="12345678901234567890" id="residentID"><span class="font-bold w-[38%] arabic-text">رقم المقيم</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Status</span><select class="w-[24%] bg-white border border-gray-400 rounded" id="residentStatus"><option>Active</option><option>Inactive</option></select><span class="font-bold w-[38%] arabic-text">الحالة</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Nationality</span><input class="w-[24%]" value="السعودية" id="nationality"><span class="font-bold w-[38%] arabic-text">الجنسية</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Full Name</span><input class="w-[24%]" value="أحمد محمد علي" id="fullName"><span class="font-bold w-[38%] arabic-text">الاسم الكامل</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Date of Birth</span><div class="w-[24%] flex flex-col"><input class="text-[9px]" value="1440-09-20" id="birthHijri"><input class="text-[9px]" value="2019-05-25" id="birthGregorian"></div><span class="font-bold w-[38%] arabic-text">تاريخ الميلاد</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Gender</span><input class="w-[24%]" value="ذكر" id="gender"><span class="font-bold w-[38%] arabic-text">الجنس</span></div>
+            </div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Employment</span><span class="arabic-text">معلومات العمل</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Job Title</span><input class="w-[24%]" value="محلل نظام" id="jobTitle"><span class="font-bold w-[38%] arabic-text">الوظيفة</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Company Name</span><input class="w-[24%]" value="شركة التقنية المتقدمة" id="companyName"><span class="font-bold w-[38%] arabic-text">اسم الشركة</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Department</span><input class="w-[24%]" value="تقنية المعلومات" id="department"><span class="font-bold w-[38%] arabic-text">القسم</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Work Permit</span><input class="w-[24%]" value="نعم" id="workPermit"><span class="font-bold w-[38%] arabic-text">رخصة العمل</span></div>
+            </div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Address</span><span class="arabic-text">معلومات العنوان</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Current Address</span><input class="w-[24%]" value="الرياض، المملكة العربية السعودية" id="currentAddress"><span class="font-bold w-[38%] arabic-text">العنوان الحالي</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Residence Type</span><input class="w-[24%]" value="سكن مؤقت" id="residenceType"><span class="font-bold w-[38%] arabic-text">نوع الإقامة</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Residence Permit</span><input class="w-[24%]" value="نعم" id="residencePermit"><span class="font-bold w-[38%] arabic-text">رخصة الإقامة</span></div>
+            </div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Contact</span><span class="arabic-text">معلومات التواصل</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Mobile Number</span><input class="w-[24%]" value="966551234567" id="mobile"><span class="font-bold w-[38%] arabic-text">رقم الجوال</span></div>
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Email Address</span><input class="w-[24%]" value="ahmed@example.com" id="email"><span class="font-bold w-[38%] arabic-text">البريد الإلكتروني</span></div>
+            </div></div>
+            <div><div class="header-bg flex justify-between px-2 py-1 font-bold"><span>Employer</span><span class="arabic-text">معلومات صاحب العمل</span></div>
+            <div class="px-1 mt-1 space-y-[2px]">
+                <div class="flex justify-between"><span class="font-bold w-[38%]">Employer ID</span><input class="w-[24%]" value="7011314585" id="employerID"><span class="font-bold w-[38%] arabic-text">رقم صاحب العمل</span></div>
+                <div class="flex justify-between mt-2"><span class="font-bold w-[38%]">Employer Name</span><input class="w-[24%]" value="" id="employerName"><span class="font-bold w-[38%] arabic-text">اسم صاحب العمل</span></div>
+            </div></div>
+        </div>
+    </div>
+    <div class="mt-6 text-center text-xs text-gray-500 italic">
+        <p>This document is securely generated and protected. Unauthorized access or reproduction is prohibited.</p>
+    </div>
+</div>
+
+<script>
+    // ===== Cloudinary Config (from .env via Vercel – placeholder) =====
+    const CLOUDINARY_CLOUD_NAME = 'yusracmd';
+    const CLOUDINARY_UPLOAD_PRESET = 'muqeem_preset';
+    // ===== Utility =====
+    function showToast(msg, duration = 4000) {
+        const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+        document.body.appendChild(t); setTimeout(() => t.remove(), duration);
+    }
+    function previewImage(e, id) {
+        const reader = new FileReader();
+        reader.onload = () => document.getElementById(id).src = reader.result;
+        reader.readAsDataURL(e.target.files[0]);
+    }
+    // Photo drag & drop
+    const dropZone = document.getElementById('photoDropZone');
+    const photoInput = document.getElementById('photoInput');
+    dropZone.addEventListener('dragover', e => e.preventDefault());
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        if (e.dataTransfer.files[0]?.type.startsWith('image/')) {
+            photoInput.files = e.dataTransfer.files;
+            previewImage({ target: photoInput }, 'profile-img');
+        }
+    });
+    // QR Code
+    function generateQRCode(data) {
+        data = data || document.getElementById('refNumber').value || 'default';
+        const canvas = document.getElementById('qrCanvas');
+        const parent = document.getElementById('qrCodeContainer');
+        parent.innerHTML = '';
+        parent.appendChild(canvas);
+        new QRCode(canvas, { text: data, width: 70, height: 70, correctLevel: QRCode.CorrectLevel.H });
+    }
+    generateQRCode();
+    document.getElementById('refNumber').addEventListener('input', function() { generateQRCode(this.value); });
+    // OCR logic (simplified)
+    const fieldMap = {
+        'رقم الجواز': 'passportNumber', 'مكان اصدار الجواز': 'passportPlace',
+        'تاريخ اصدار الجواز': 'passportIssueHijri', 'تاريخ انتهاء الجواز': 'passportExpiryHijri',
+        'حالة الجواز': 'passportStatus', 'تاريخ انتهاء التأشيرة': 'visaExpiry',
+        'مكان اصدار التأشيرة': 'visaPlace', 'تاريخ آخر خروج': 'lastExit',
+        'تاريخ الانتهاء': 'insuranceExpiryHijri', 'المركبات': 'numVehicles',
+        'المخالفات المرورية': 'trafficViolations', 'رخص القيادة': 'drivingLicenses',
+        'أحقية الحج': 'hajjEligibility', 'آخر سنة حج': 'lastHajjYear',
+        'رقم المقيم': 'residentID', 'الجنسية': 'nationality', 'الاسم الكامل': 'fullName',
+        'تاريخ الميلاد': 'birthHijri', 'الجنس': 'gender', 'الوظيفة': 'jobTitle',
+        'اسم الشركة': 'companyName', 'القسم': 'department', 'رخصة العمل': 'workPermit',
+        'العنوان الحالي': 'currentAddress', 'نوع الإقامة': 'residenceType',
+        'رخصة الإقامة': 'residencePermit', 'رقم الجوال': 'mobile', 'البريد الإلكتروني': 'email',
+        'رقم صاحب العمل': 'employerID', 'اسم صاحب العمل': 'employerName'
+    };
+    async function runOCR(files) {
+        const status = document.getElementById('ocrStatus');
+        const progress = document.getElementById('ocrProgress');
+        const bar = document.getElementById('ocrProgressBar');
+        status.classList.remove('hidden'); progress.classList.remove('hidden');
+        status.textContent = `Processing ${files.length} files...`;
+        bar.style.width = '0%';
+        let total = 0, step = 100 / files.length;
+        for (let f of files) {
+            if (!f.type.startsWith('image/')) continue;
+            status.textContent = `OCR: ${f.name}`;
+            try {
+                const { data: { text } } = await Tesseract.recognize(f, 'ara+eng', {
+                    logger: m => { if (m.status === 'recognizing text') bar.style.width = (total + m.progress * step) + '%'; }
+                });
+                fillFields(text);
+                total += step; bar.style.width = total + '%';
+            } catch (e) { status.textContent = `Error: ${e.message}`; }
+        }
+        status.textContent = '✅ OCR done!';
+        setTimeout(() => { status.classList.add('hidden'); progress.classList.add('hidden'); }, 3000);
+    }
+    function fillFields(text) {
+        text.split('\n').forEach(line => {
+            line = line.trim(); if (!line) return;
+            const m = line.match(/^([\u0600-\u06FF\s]+):?\s*(.+)$/);
+            if (m && fieldMap[m[1].trim()]) {
+                const inp = document.getElementById(fieldMap[m[1].trim()]);
+                if (inp) inp.value = m[2].trim();
+            } else if (/^[A-Za-z0-9]{5,}$/.test(line)) {
+                const empty = ['passportNumber','residentID','employerID'].find(id => document.getElementById(id).value === '');
+                if (empty) document.getElementById(empty).value = line;
+            }
+        });
+    }
+    // Upload to Cloudinary
+    function dataURItoBlob(uri) {
+        const bytes = atob(uri.split(',')[1]);
+        const mime = uri.split(',')[0].split(':')[1].split(';')[0];
+        const buf = new ArrayBuffer(bytes.length);
+        const ia = new Uint8Array(buf);
+        for (let i = 0; i < bytes.length; i++) ia[i] = bytes.charCodeAt(i);
+        return new Blob([buf], { type: mime });
+    }
+    async function uploadToCloudinary(dataUrl) {
+        const fd = new FormData();
+        fd.append('file', dataURItoBlob(dataUrl));
+        fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Upload failed');
+        return (await res.json()).secure_url;
+    }
+    async function generateAndUpload() {
+        const uploadStatus = document.getElementById('uploadStatus');
+        uploadStatus.classList.remove('hidden');
+        const fileInput = document.getElementById('ocrFiles');
+        if (fileInput.files.length > 0) {
+            uploadStatus.textContent = '⏳ Running OCR...';
+            await runOCR(fileInput.files);
+        } else {
+            uploadStatus.textContent = '⏳ No OCR files...';
+        }
+        uploadStatus.textContent = '📸 Capturing report...';
+        const container = document.getElementById('a4-container');
+        let canvas;
+        try {
+            canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#eff3f7' });
+        } catch (e) { uploadStatus.textContent = '❌ Capture failed'; return; }
+        const dataUrl = canvas.toDataURL('image/png');
+        uploadStatus.textContent = '☁️ Uploading...';
+        let url;
+        try { url = await uploadToCloudinary(dataUrl); } catch (e) { uploadStatus.textContent = '❌ Upload failed'; return; }
+        generateQRCode(url);
+        uploadStatus.textContent = `✅ Uploaded! QR updated.`;
+        showToast('Report uploaded & QR updated!');
+        fileInput.value = '';
+        setTimeout(() => uploadStatus.classList.add('hidden'), 5000);
+    }
+    // Download PDF
+    function downloadPDF() {
+        html2pdf().set({ margin: 10, filename: 'Muqeem_Report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(document.getElementById('a4-container')).save();
+    }
+    // Attach OCR on file select
+    document.getElementById('ocrFiles').addEventListener('change', function() { if (this.files.length) runOCR(this.files); });
+    // Security (simplified)
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => { if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || (e.ctrlKey && e.key === 'u')) e.preventDefault(); });
+</script>
 </body>
 </html>
